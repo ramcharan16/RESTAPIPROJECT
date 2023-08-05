@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>General Store</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    /* Your custom CSS styles here */
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h1 class="mb-4">General Store</h1>
+    
+    <form id="item-form">
+      <input type="text" id="name" class="form-control mb-2" placeholder="Item Name" required>
+      <input type="text" id="description" class="form-control mb-2" placeholder="Item Description" required>
+      <input type="number" id="price" class="form-control mb-2" placeholder="Item Price" required>
+      <input type="number" id="quantity" class="form-control mb-2" placeholder="Item Quantity" required>
+      <button type="submit" class="btn btn-primary">Add Item</button>
+    </form>
+    
+    <div id="item-list" class="mt-4"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    const BASE_URL = 'https://crudcrud.com/api/5ae4b2ef92c544b08f2d335514a181a4'; // Replace with your actual CRUD CRUD API base URL
+
+    
+
+    const itemForm = document.getElementById('item-form');
+    const itemList = document.getElementById('item-list');
+
+    itemForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('name').value;
+      const description = document.getElementById('description').value;
+      const price = parseFloat(document.getElementById('price').value);
+      const quantity = parseInt(document.getElementById('quantity').value);
+
+      const newItem = { name, description, price, quantity };
+
+      try {
+        const response = await axios.post(`${BASE_URL}/items`, newItem);
+        
+        if (response.status === 200) {
+          const createdItem = response.data;
+          addItemToUI(createdItem);
+          itemForm.reset();
+        } else {
+          console.error('Failed to add item');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    });
+
+    async function fetchItems() {
+      try {
+        const response = await axios.get(`${BASE_URL}/items`);
+        const items = response.data;
+        updateItemListUI(items);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    function updateItemListUI(items) {
+      itemList.innerHTML = '';
+      items.forEach(addItemToUI);
+    }
+
+    function addItemToUI(item) {
+      const itemCard = document.createElement('div');
+      itemCard.className = 'card mb-2';
+      itemCard.id = `item-${item._id}`;
+
+      const cardBody = document.createElement('div');
+      cardBody.className = 'card-body';
+
+      const cardTitle = document.createElement('h5');
+      cardTitle.className = 'card-title';
+      cardTitle.textContent = item.name;
+
+      const cardText = document.createElement('p');
+      cardText.className = 'card-text';
+      cardText.textContent = `Description: ${item.description}, Price: $${item.price}, Quantity: ${item.quantity}`;
+
+      const buyQuantitySelect = document.createElement('select');
+      buyQuantitySelect.className = 'form-control mb-2';
+      for (let i = 1; i <= item.quantity; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = i;
+        buyQuantitySelect.appendChild(option);
+      }
+
+      const buyButton = document.createElement('button');
+      buyButton.className = 'btn btn-success';
+      buyButton.textContent = 'Buy';
+      buyButton.addEventListener('click', () => {
+        buyItem(item, buyQuantitySelect.value);
+      });
+
+      cardBody.appendChild(cardTitle);
+      cardBody.appendChild(cardText);
+      cardBody.appendChild(buyQuantitySelect);
+      cardBody.appendChild(buyButton);
+
+      itemCard.appendChild(cardBody);
+
+      itemList.appendChild(itemCard);
+    }
+
+    async function buyItem(item, quantity) {
+      const updatedQuantity = item.quantity - quantity;
+
+      try {
+        const response = await axios.put(`${BASE_URL}/items/${item._id}`, { quantity: updatedQuantity });
+
+        if (response.status === 200) {
+          updateItemUI(item._id, updatedQuantity);
+        } else {
+          console.error('Failed to update quantity');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    function updateItemUI(itemId, newQuantity) {
+      const cardText = document.querySelector(`#item-${itemId} .card-text`);
+      cardText.textContent = `Description: ${cardText.textContent.split(',')[0]}, Price: ${cardText.textContent.split(',')[1]}, Quantity: ${newQuantity}`;
+    }
+
+    fetchItems();
+  </script>
+</body>
+</html>
